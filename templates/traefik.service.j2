@@ -1,0 +1,13 @@
+[Unit]
+Description=Traefik Reverse Proxy
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=on-failure
+RestartSec=10
+ExecStart=/usr/bin/docker run --rm --name %p --volume /etc/traefik/traefik.toml:/etc/traefik/traefik.toml --volume /var/run/docker.sock:/var/run/docker.sock --publish 8080:8080 --publish 80:80 {{ traefik_image }}:{{ traefik_version }}
+ExecStop=-/usr/bin/docker stop -t 30 %p
+
+[Install]
+WantedBy=multi-user.target

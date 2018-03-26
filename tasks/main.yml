@@ -1,0 +1,42 @@
+---
+- name: Pull container image
+  docker_image:
+    name: "{{ traefik_image }}:{{ traefik_version }}"
+  async: 1000
+  poll: 0
+  register: image_pull
+
+- name: Create directory
+  file:
+    path: /etc/traefik
+    state: directory
+
+- name: Download example configuration
+  get_url:
+    url: https://raw.githubusercontent.com/containous/traefik/master/traefik.sample.toml
+    dest: /etc/traefik/traefik.toml
+
+- name: Add unit file
+  template:
+    src: traefik.service.j2
+    dest: /etc/systemd/system/traefik.service
+    mode: 644
+    owner: root
+    group: root
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Check status of image pull
+  async_status:
+    jid: "{{ image_pull.ansible_job_id }}"
+  register: job_result
+  until: job_result.finished
+  retries: 30
+
+- name: Start and enable traefik container
+  systemd:
+    name: traefik
+    state: restarted
+    enabled: true
